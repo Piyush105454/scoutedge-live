@@ -1,0 +1,21 @@
+name: Keep-Alive Heartbeat
+
+on:
+  schedule:
+    - cron: '*/14 * * * *' # Every 14 minutes to beat Render's 15-min sleep timer
+  workflow_dispatch: # Allows manual trigger for testing
+
+jobs:
+  ping:
+    name: Heartbeat Ping
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Service
+        run: |
+          if [ -n "${{ secrets.RENDER_APP_URL }}" ]; then
+            echo "Pinging Render App..."
+            curl -s -f ${{ secrets.RENDER_APP_URL }} || echo "Ping failed, but continuing..."
+          else
+            echo "RENDER_APP_URL secret is not set. Go to Settings > Secrets > Actions to add it."
+            exit 1
+          fi
