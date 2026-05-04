@@ -1,0 +1,47 @@
+# Environments
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+venv/
+.venv/
+env/
+.env/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.flaskenv
+
+# IDEs
+.vscode/
+.idea/
+
+# Large Files / Media
+*.mp4
+*.mov
+*.avi
+temp_crop_*.jpg
+scoutedge-backend/scratch/
+
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+.tanstack/
+routeTree.gen.ts
