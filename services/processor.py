@@ -4,7 +4,6 @@ import math
 import time
 from services.detection import detect_players
 from services.ocr import read_jersey_number
-import mediapipe as mp
 import numpy as np
 
 class SimpleTracker:
