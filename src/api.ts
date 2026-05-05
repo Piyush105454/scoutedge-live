@@ -1,4 +1,4 @@
-export const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
+export const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'https://scoutedge-live.onrender.com'
 const BASE_URL = `${BACKEND_BASE_URL}/api`
 
 export interface Match {
