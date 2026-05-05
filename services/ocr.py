@@ -7,6 +7,8 @@ load_dotenv()
 
 import gc
 
+_reader = None
+
 def get_reader():
     global _reader
     if _reader is None:
