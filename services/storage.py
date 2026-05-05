@@ -39,7 +39,7 @@ def upload_to_storage(file, filename=None):
     config = TransferConfig(
         multipart_threshold=8 * 1024 * 1024,
         multipart_chunksize=5 * 1024 * 1024,
-        use_threads=True
+        use_threads=False # Disable threads to save RAM on Render
     )
     
     try:
@@ -55,6 +55,7 @@ def upload_to_storage(file, filename=None):
         raise e
     
     # Construct the public URL - URL encode the filename part
+    encoded_filename = urllib.parse.quote(filename)
     return f"{os.getenv('SUPABASE_PUBLIC_URL')}/{encoded_filename}"
 
 def generate_presigned_url(filename):
