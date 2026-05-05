@@ -23,6 +23,7 @@ allowed_origins = [
 allowed_origins = [origin.rstrip('/') for origin in allowed_origins if origin]
 CORS(app, origins=allowed_origins, supports_credentials=True)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024 # 50MB limit
+app.config['MAX_FORM_MEMORY_SIZE'] = 2 * 1024 * 1024 # Only allow 2MB of non-file form data in RAM
 
 
 # Register all routes
