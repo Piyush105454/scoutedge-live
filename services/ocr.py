@@ -1,6 +1,5 @@
 import cv2
 import os
-import easyocr
 import numpy as np
 from dotenv import load_dotenv
 
@@ -11,6 +10,7 @@ _reader = None
 def get_reader():
     global _reader
     if _reader is None:
+        import easyocr
         print("Initializing EasyOCR reader (Lazy)...")
         # Ensure gpu=False for Render Free Tier to save memory
         _reader = easyocr.Reader(['en'], gpu=False)

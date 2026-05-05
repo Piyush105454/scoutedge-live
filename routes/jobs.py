@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from models.database import get_db_connection
-from services.processor import process_video
 import requests
 import os
 import tempfile
@@ -11,6 +10,7 @@ jobs_bp = Blueprint('jobs', __name__)
 
 @jobs_bp.route('/jobs/process', methods=['POST'])
 def process_video_job():
+    from services.processor import process_video
     data = request.json
     match_id = data.get('match_id')
     video_url = data.get('video_url')
