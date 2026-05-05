@@ -11,9 +11,17 @@ if not os.path.exists('static/clips'):
     os.makedirs('static/clips', exist_ok=True)
 
 app = Flask(__name__, static_folder='static')
-# Configure CORS dynamically
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-CORS(app, origins=[frontend_url])  # Allows production frontend and local dev
+# Configure CORS to be more flexible for production and development
+allowed_origins = [
+    os.getenv("FRONTEND_URL", "https://scoutedge.vercel.app"),
+    "https://scoutedge.vercel.app",
+    "https://scoutedge.vercel.app/",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+]
+# Remove any accidental trailing slashes and filter out empty strings
+allowed_origins = [origin.rstrip('/') for origin in allowed_origins if origin]
+CORS(app, origins=allowed_origins, supports_credentials=True)
 
 
 # Register all routes
