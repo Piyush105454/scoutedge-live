@@ -47,8 +47,8 @@ def upload_video():
         (
             match_data.get('match_title'), 
             match_data.get('sport'), 
-            match_data.get('match_date'), 
-            match_data.get('venue'),
+            match_data.get('match_date') or None, 
+            match_data.get('venue') or None,
             'queued',
             video_url
         )
