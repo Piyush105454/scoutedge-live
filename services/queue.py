@@ -34,8 +34,11 @@ def queue_analysis_job(match_id, video_url):
     qstash_token = os.getenv('UPSTASH_QSTASH_TOKEN')
     backend_url = os.getenv('BACKEND_URL')
     
-    if not qstash_token or not backend_url:
-        print("Error: Missing UPSTASH_QSTASH_TOKEN or BACKEND_URL in .env")
+    if not qstash_token:
+        print("Error: Missing UPSTASH_QSTASH_TOKEN in environment variables.")
+        return False
+    if not backend_url:
+        print("Error: Missing BACKEND_URL in environment variables.")
         return False
         
     callback_url = f"{backend_url}/api/jobs/process"
