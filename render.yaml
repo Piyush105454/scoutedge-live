@@ -5,7 +5,7 @@ services:
     region: singapore # Adjust if needed, but good default
     plan: free
     buildCommand: pip install -r requirements.txt; python download_models.py
-    startCommand: gunicorn --timeout 300 --workers 1 --threads 4 --worker-class gthread app:app
+    startCommand: gunicorn --timeout 900 --workers 1 --worker-class gevent app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.10
