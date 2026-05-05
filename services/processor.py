@@ -3,7 +3,7 @@ import os
 import math
 import time
 from services.detection import detect_players
-from services.ocr import read_jersey_number
+from services.ocr import read_jersey_number, clear_ocr_memory
 import numpy as np
 
 class SimpleTracker:
@@ -142,4 +142,5 @@ def process_video(video_path, on_progress=None):
     for tid, stats in player_stats.items():
         results['player_metrics'][tid] = {"total_distance": round(stats['distance'], 2), "top_speed": stats['top_speed'], "avg_speed": round((stats['distance'] / (results['total_frames']/fps)) * 3.6, 2) if results['total_frames'] > 0 else 0, "heat_points": stats['heat_points'][:100], "team": stats['team'], "jersey_number": stats['jersey_number']}
     cap.release()
+    clear_ocr_memory()
     return results

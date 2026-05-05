@@ -5,16 +5,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-_reader = None
+import gc
 
 def get_reader():
     global _reader
     if _reader is None:
         import easyocr
-        print("Initializing EasyOCR reader (Lazy)...")
-        # Ensure gpu=False for Render Free Tier to save memory
-        _reader = easyocr.Reader(['en'], gpu=False)
+        print("Initializing EasyOCR reader (Lazy-RAM-Optimized)...")
+        # Ensure gpu=False and model_storage_directory is ephemeral /tmp
+        _reader = easyocr.Reader(['en'], gpu=False, model_storage_directory='/tmp/easyocr')
     return _reader
+
+def clear_ocr_memory():
+    global _reader
+    if _reader is not None:
+        print("Clearing OCR memory...")
+        del _reader
+        _reader = None
+        gc.collect()
 
 def crop_jersey_region(image_path, player_box):
     img = cv2.imread(image_path)
@@ -38,6 +46,15 @@ def crop_jersey_region(image_path, player_box):
     
     if crop.size == 0:
         return None
+        
+    # RAM OPTIMIZATION: Convert to grayscale and shrink
+    # Large images kill the RAM on 512MB plan
+    crop = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+    
+    # Max height of 128px is plenty for jersey numbers
+    if crop.shape[0] > 128:
+        scale = 128 / crop.shape[0]
+        crop = cv2.resize(crop, (0,0), fx=scale, fy=scale)
         
     return crop
 
