@@ -11,7 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Render Service
+        env:
+          RENDER_APP_URL: ${{ secrets.RENDER_APP_URL }}
         run: |
-          URL="https://scoutedge-live.onrender.com/api"
+          # Use secret if provided, otherwise fallback to hardcoded URL
+          # Append /api/health to the base URL if not already present
+          BASE_URL="${RENDER_APP_URL:-https://scoutedge-live.onrender.com}"
+          URL="${BASE_URL%/}/api/health"
+          
           echo "Pinging $URL..."
-          curl -s -f $URL || echo "Ping failed, but continuing..."
+          curl -s -f "$URL" || (echo "Ping to $URL failed" && exit 0)

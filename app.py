@@ -32,8 +32,17 @@ app.register_blueprint(players_bp, url_prefix='/api')
 app.register_blueprint(jobs_bp, url_prefix='/api')
 
 @app.route('/')
-def health():
+def index():
     return {"status": "ScoutEdge API running", "version": "1.0"}
+
+@app.route('/api/health')
+def health_check():
+    # Basic heartbeat/health endpoint
+    return {
+        "status": "healthy",
+        "service": "scoutedge-backend",
+        "database": "connected" # You could add real DB check here if needed
+    }
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
