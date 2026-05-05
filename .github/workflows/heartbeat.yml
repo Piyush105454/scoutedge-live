@@ -12,10 +12,6 @@ jobs:
     steps:
       - name: Ping Render Service
         run: |
-          if [ -n "${{ secrets.RENDER_APP_URL }}" ]; then
-            echo "Pinging Render App..."
-            curl -s -f ${{ secrets.RENDER_APP_URL }} || echo "Ping failed, but continuing..."
-          else
-            echo "RENDER_APP_URL secret is not set. Go to Settings > Secrets > Actions to add it."
-            exit 1
-          fi
+          URL="https://scoutedge-live.onrender.com/api"
+          echo "Pinging $URL..."
+          curl -s -f $URL || echo "Ping failed, but continuing..."

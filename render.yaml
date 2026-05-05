@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: scoutedge-backend
+    name: scoutedge-live
     env: python
     region: singapore # Adjust if needed, but good default
     plan: free
