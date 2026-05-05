@@ -66,21 +66,32 @@ def get_player_team(image_path, player_box):
     return detect_team(crop)
 
 def read_jersey_number(image_path, player_box):
-    # step 1 — crop jersey area
-    crop = crop_jersey_region(
-        image_path, player_box
-    )
+    # step 1 — crop jersey area (COLOR)
+    img = cv2.imread(image_path)
+    if img is None: return {"jersey_number": None, "team": "Unknown"}
     
-    if crop is None:
-        return None
+    x_center, y_center = int(player_box['x']), int(player_box['y'])
+    w, h = int(player_box['width']), int(player_box['height'])
     
-    # Detect team color first (always works even if OCR fails)
-    team = detect_team(crop)
+    x1, y1 = max(0, x_center - w // 2), max(0, y_center - h // 2 + int(h * 0.15))
+    x2, y2 = min(img.shape[1], x_center + w // 2), min(img.shape[0], y_center - h // 2 + int(h * 0.65))
+    
+    color_crop = img[y1:y2, x1:x2]
+    if color_crop.size == 0: return {"jersey_number": None, "team": "Unknown"}
+    
+    # Detect team color FIRST (using color image)
+    team = detect_team(color_crop)
+    
+    # Now optimize for OCR (Grayscale + Shrink)
+    ocr_crop = cv2.cvtColor(color_crop, cv2.COLOR_BGR2GRAY)
+    if ocr_crop.shape[0] > 128:
+        scale = 128 / ocr_crop.shape[0]
+        ocr_crop = cv2.resize(ocr_crop, (0,0), fx=scale, fy=scale)
     
     try:
         # step 2 — call EasyOCR
         reader = get_reader()
-        results = reader.readtext(crop)
+        results = reader.readtext(ocr_crop)
         
         # step 3 — extract jersey number
         for (bbox, text, prob) in results:
