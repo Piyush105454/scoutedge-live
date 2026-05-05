@@ -69,33 +69,22 @@ function UploadPage() {
     }
 
     setLoading(true);
-    
+    const data = new FormData();
+    data.append("video", videoFile);
+    Object.entries(formData).forEach(([key, value]) => data.append(key, value));
+    data.append("roster", JSON.stringify(roster));
+    data.append("settings", JSON.stringify({ toggles, fps, format, colors: { home, away } }));
+
     try {
-      // 1. Get Presigned URL from Backend
-      console.log("Getting presigned URL...");
-      const { upload_url, public_url } = await getPresignedUrl(videoFile.name);
-
-      // 2. Upload DIRECTLY to S3/Supabase
-      console.log("Uploading directly to S3...");
-      await uploadToS3(upload_url, videoFile);
-
-      // 3. Send final data to Backend
-      console.log("Finalizing match record...");
-      const data = new FormData();
-      data.append("video_url", public_url); // Provide the URL directly
-      Object.entries(formData).forEach(([key, value]) => data.append(key, value));
-      data.append("roster", JSON.stringify(roster));
-      data.append("settings", JSON.stringify({ toggles, fps, format, colors: { home, away } }));
-
       const res = await uploadMatch(data);
       if (res.success) {
         navigate({ to: "/matches" });
       } else {
-        alert("Finalization failed: " + res.error);
+        alert("Upload failed: " + res.error);
       }
     } catch (err) {
       console.error(err);
-      alert("An error occurred during production upload flow. Please check console.");
+      alert("An error occurred during upload. Please ensure your video is under 50MB.");
     } finally {
       setLoading(false);
     }
