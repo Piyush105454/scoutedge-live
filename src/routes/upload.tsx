@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { UploadCloud, Plus, X, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
-import { uploadMatch } from "@/api";
+import { uploadMatch, getPresignedUrl, uploadToS3 } from "@/api";
 
 export const Route = createFileRoute("/upload")({
   head: () => ({
@@ -69,22 +69,33 @@ function UploadPage() {
     }
 
     setLoading(true);
-    const data = new FormData();
-    data.append("video", videoFile);
-    Object.entries(formData).forEach(([key, value]) => data.append(key, value));
-    data.append("roster", JSON.stringify(roster));
-    data.append("settings", JSON.stringify({ toggles, fps, format, colors: { home, away } }));
-
+    
     try {
+      // 1. Get Presigned URL from Backend
+      console.log("Getting presigned URL...");
+      const { upload_url, public_url } = await getPresignedUrl(videoFile.name);
+
+      // 2. Upload DIRECTLY to S3/Supabase
+      console.log("Uploading directly to S3...");
+      await uploadToS3(upload_url, videoFile);
+
+      // 3. Send final data to Backend
+      console.log("Finalizing match record...");
+      const data = new FormData();
+      data.append("video_url", public_url); // Provide the URL directly
+      Object.entries(formData).forEach(([key, value]) => data.append(key, value));
+      data.append("roster", JSON.stringify(roster));
+      data.append("settings", JSON.stringify({ toggles, fps, format, colors: { home, away } }));
+
       const res = await uploadMatch(data);
       if (res.success) {
         navigate({ to: "/matches" });
       } else {
-        alert("Upload failed: " + res.error);
+        alert("Finalization failed: " + res.error);
       }
     } catch (err) {
       console.error(err);
-      alert("An error occurred during upload.");
+      alert("An error occurred during production upload flow. Please check console.");
     } finally {
       setLoading(false);
     }
