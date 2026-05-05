@@ -9,6 +9,7 @@ upload_bp = Blueprint('upload', __name__)
 
 @upload_bp.route('/upload', methods=['POST'])
 def upload_video():
+    print("Upload request received. Parsing form data...", flush=True)
     if 'video' not in request.files:
         return jsonify({"error": "No video file"}), 400
     
