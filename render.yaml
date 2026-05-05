@@ -9,3 +9,5 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.10
+      - key: GUNICORN_CMD_ARGS
+        value: "--timeout 900 --workers 1 --worker-class gevent"
