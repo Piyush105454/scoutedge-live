@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services.storage import upload_to_storage
+from services.storage import upload_to_storage, generate_presigned_url
 from models.database import get_db_connection
 import requests
 import os
@@ -7,21 +7,33 @@ import json
 
 upload_bp = Blueprint('upload', __name__)
 
+@upload_bp.route('/upload/presigned', methods=['POST'])
+def get_presigned_url():
+    data = request.json
+    filename = data.get('filename', 'video.mp4')
+    upload_url, public_url = generate_presigned_url(filename)
+    return jsonify({
+        "upload_url": upload_url,
+        "public_url": public_url
+    })
+
 @upload_bp.route('/upload', methods=['POST'])
 def upload_video():
-    print("Upload request received. Parsing form data...", flush=True)
-    if 'video' not in request.files:
-        return jsonify({"error": "No video file"}), 400
-    
-    file = request.files['video']
-    
-    if not file or file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-        
     match_data = request.form
+    video_url = match_data.get('video_url') # Option to provide URL from direct frontend upload
     
-    # 1. Upload to Supabase Storage
-    video_url = upload_to_storage(file)
+    # Fallback to direct upload if no video_url provided (original behavior)
+    if not video_url:
+        print("Upload request received. Parsing form data...", flush=True)
+        if 'video' not in request.files:
+            return jsonify({"error": "No video file"}), 400
+        
+        file = request.files['video']
+        if not file or file.filename == '':
+            return jsonify({"error": "No selected file"}), 400
+            
+        # 1. Upload to Supabase Storage
+        video_url = upload_to_storage(file)
     
     # 2. Create match record in DB (Neon)
     conn = get_db_connection()

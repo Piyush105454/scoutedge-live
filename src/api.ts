@@ -46,6 +46,28 @@ export const getMatch = async (id: string): Promise<{ match: Match; players: any
   return res.json()
 }
 
+// Get presigned URL for direct S3 upload
+export const getPresignedUrl = async (filename: string): Promise<{ upload_url: string; public_url: string }> => {
+  const res = await fetch(`${BASE_URL}/upload/presigned`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename })
+  })
+  return res.json()
+}
+
+// Direct upload to S3 using presigned URL
+export const uploadToS3 = async (url: string, file: File): Promise<void> => {
+  const res = await fetch(url, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': 'video/mp4' // Should match what backend generated
+    }
+  })
+  if (!res.ok) throw new Error('S3 Upload failed')
+}
+
 // Upload video + match data
 export const uploadMatch = async (formData: FormData): Promise<any> => {
   const res = await fetch(`${BASE_URL}/upload`, {

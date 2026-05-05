@@ -55,6 +55,26 @@ def upload_to_storage(file, filename=None):
         raise e
     
     # Construct the public URL - URL encode the filename part
-    encoded_filename = urllib.parse.quote(filename)
     return f"{os.getenv('SUPABASE_PUBLIC_URL')}/{encoded_filename}"
+
+def generate_presigned_url(filename):
+    filename = sanitize_filename(filename)
+    s3 = get_storage_client()
+    bucket = os.getenv('SUPABASE_BUCKET')
+    
+    url = s3.generate_presigned_url(
+        'put_object',
+        Params={
+            'Bucket': bucket,
+            'Key': filename,
+            'ContentType': 'video/mp4' # Or detect from extension
+        },
+        ExpiresIn=3600 # 1 hour
+    )
+    
+    # Also return the final public URL
+    encoded_filename = urllib.parse.quote(filename)
+    public_url = f"{os.getenv('SUPABASE_PUBLIC_URL')}/{encoded_filename}"
+    
+    return url, public_url
 
