@@ -14,13 +14,8 @@ def upload_video():
     
     file = request.files['video']
     
-    # Enforce 50MB limit
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)
-    
-    if file_size > 50 * 1024 * 1024:
-        return jsonify({"error": "Video file is too large. Please upload a video under 50MB."}), 413
+    if not file or file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
         
     match_data = request.form
     

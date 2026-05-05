@@ -22,6 +22,7 @@ allowed_origins = [
 # Remove any accidental trailing slashes and filter out empty strings
 allowed_origins = [origin.rstrip('/') for origin in allowed_origins if origin]
 CORS(app, origins=allowed_origins, supports_credentials=True)
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024 # 50MB limit
 
 
 # Register all routes
