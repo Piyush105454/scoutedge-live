@@ -1,0 +1,23 @@
+name: Keep-Alive Heartbeat
+
+on:
+  schedule:
+    - cron: '*/14 * * * *' # Every 14 minutes to beat Render's 15-min sleep timer
+  workflow_dispatch: # Allows manual trigger for testing
+
+jobs:
+  ping:
+    name: Heartbeat Ping
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Service
+        env:
+          RENDER_APP_URL: ${{ secrets.RENDER_APP_URL }}
+        run: |
+          # Use secret if provided, otherwise fallback to hardcoded URL
+          # Append /api/health to the base URL if not already present
+          BASE_URL="${RENDER_APP_URL:-https://scoutedge-live.onrender.com}"
+          URL="${BASE_URL%/}/api/health"
+          
+          echo "Pinging $URL..."
+          curl -s -f "$URL" || (echo "Ping to $URL failed" && exit 0)
