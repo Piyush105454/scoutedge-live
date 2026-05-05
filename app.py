@@ -11,7 +11,10 @@ if not os.path.exists('static/clips'):
     os.makedirs('static/clips', exist_ok=True)
 
 app = Flask(__name__, static_folder='static')
-CORS(app)  # allows React frontend to connect
+# Configure CORS dynamically
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+CORS(app, origins=[frontend_url])  # Allows production frontend and local dev
+
 
 # Register all routes
 app.register_blueprint(upload_bp, url_prefix='/api')
