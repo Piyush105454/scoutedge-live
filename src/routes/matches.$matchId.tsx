@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { eventColors } from "@/lib/data";
 import { SportBadge } from "@/components/StatusBadge";
-import { getMatch, type Match, type Player } from "@/api";
+import { getMatch, type Match, type Player, BACKEND_BASE_URL } from "@/api";
 
 export const Route = createFileRoute("/matches/$matchId")({
   loader: async ({ params }) => {
@@ -104,7 +104,7 @@ function MatchAnalysis() {
               src={match.video_url} 
               className="w-full h-full" 
               controls
-              poster={`http://localhost:5000${match.metadata?.clips?.[0]?.thumbnail || ""}`}
+              poster={`${BACKEND_BASE_URL}${match.metadata?.clips?.[0]?.thumbnail || ""}`}
             />
           </div>
 
@@ -513,7 +513,7 @@ function ClipsTab({ match, onSeek }: { match: any, onSeek?: (s: number) => void 
         >
           <div className="aspect-video bg-black relative">
             <img 
-              src={`http://localhost:5000${clip.thumbnail}`} 
+              src={`${BACKEND_BASE_URL}${clip.thumbnail}`} 
               alt={clip.title} 
               className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" 
             />
