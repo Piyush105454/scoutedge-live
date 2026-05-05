@@ -6,10 +6,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Initialize EasyOCR reader (singleton)
-# This will use GPU if available, otherwise CPU
-print("Initializing EasyOCR reader...")
-reader = easyocr.Reader(['en'], gpu=True)
+_reader = None
+
+def get_reader():
+    global _reader
+    if _reader is None:
+        print("Initializing EasyOCR reader (Lazy)...")
+        # Ensure gpu=False for Render Free Tier to save memory
+        _reader = easyocr.Reader(['en'], gpu=False)
+    return _reader
 
 def crop_jersey_region(image_path, player_box):
     img = cv2.imread(image_path)
@@ -57,6 +62,7 @@ def read_jersey_number(image_path, player_box):
     
     try:
         # step 2 — call EasyOCR
+        reader = get_reader()
         results = reader.readtext(crop)
         
         # step 3 — extract jersey number
