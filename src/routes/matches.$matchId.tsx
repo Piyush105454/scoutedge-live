@@ -71,10 +71,24 @@ export const Route = createFileRoute("/matches/$matchId")({
 const tabs = ["Players", "Timeline", "AI Insights (Demo)", "JSON Output", "Video Clips"] as const;
 type Tab = typeof tabs[number];
 
+const getTeamColor = (teamName: string) => {
+  const name = teamName?.toLowerCase() || "";
+  if (name.includes("india") || name.includes("blue")) return "#00529B";
+  if (name.includes("australia") || name.includes("yellow") || name.includes("gold")) return "#FFCD00";
+  if (name.includes("away") || name.includes("red")) return "#E21D48";
+  if (name.includes("home") || name.includes("green")) return "#16A34A";
+  if (name.includes("simulation")) return "#7C3AED";
+  return "#94A3B8";
+};
+
 function MatchAnalysis() {
   const { match, players, events } = Route.useLoaderData();
   const [tab, setTab] = useState<Tab>("Players");
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Safely parse metadata if it's a string
+  const metadata = typeof match.metadata === 'string' ? JSON.parse(match.metadata) : (match.metadata || {});
+  const processingTime = metadata.processing_time || "N/A";
 
   const seekTo = (seconds: number) => {
     if (videoRef.current) {
@@ -113,7 +127,7 @@ function MatchAnalysis() {
             <QuickStat icon={Users} label="Players" value={String(match.players_detected)} />
             <QuickStat icon={Activity} label="Events" value={String(match.events_tagged)} />
             <QuickStat icon={Film} label="Frames" value={String(match.frames_analyzed)} />
-            <QuickStat icon={Clock} label="Time" value={match.processing_time || "N/A"} />
+            <QuickStat icon={Clock} label="Time" value={processingTime} />
           </section>
         </div>
 
@@ -308,41 +322,52 @@ function QuickStat({ icon: Icon, label, value }: { icon: any; label: string; val
 }
 
 function PlayersTab({ players }: { players: any[] }) {
+  const [showAll, setShowAll] = useState(false);
+  const confirmedPlayers = players.filter(p => p.jersey_number);
+  const displayedPlayers = showAll ? players : confirmedPlayers;
+
   if (!players || players.length === 0) {
     return <div className="text-center py-10 text-muted-foreground">No players detected yet.</div>;
   }
   return (
     <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          {showAll ? "All Tracked Objects" : "Confirmed Players"} ({displayedPlayers.length})
+        </h3>
+        <button 
+          onClick={() => setShowAll(!showAll)}
+          className="text-xs text-primary hover:underline font-medium"
+        >
+          {showAll ? "Show Only Jerseys" : "Show All Tracked"}
+        </button>
+      </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {players.map((p) => {
+        {displayedPlayers.map((p) => {
           const teamName = p.team || "Unknown";
-          const isIndia = teamName.toLowerCase() === "india" || teamName.toLowerCase() === "home";
-          const isAustralia = teamName.toLowerCase() === "australia" || teamName.toLowerCase() === "away";
+          const teamColor = getTeamColor(teamName);
           
-          // Use AI detected colors: India (Blue) vs Australia (Yellow)
-          // Removing hardcoded red (destructive) as per user request
-          let colorClasses = "bg-primary/15 text-primary border-2 border-primary/40";
-          let badgeClasses = "bg-primary/15 text-primary";
+          let colorClasses = `bg-[${teamColor}]/15 text-[${teamColor}] border-2 border-[${teamColor}]/40`;
+          let badgeClasses = `bg-[${teamColor}]/15 text-[${teamColor}]`;
           
-          if (isIndia) {
-            colorClasses = "bg-[#00529B]/15 text-[#00529B] border-2 border-[#00529B]/40";
-            badgeClasses = "bg-[#00529B]/15 text-[#00529B]";
-          } else if (isAustralia) {
-            colorClasses = "bg-[#FFCD00]/15 text-[#FFCD00] border-2 border-[#FFCD00]/40";
-            badgeClasses = "bg-[#FFCD00]/15 text-[#FFCD00]";
-          }
+          // Tailwind might not pick up dynamic hex in classes easily, so use inline styles for reliability
+          const dynamicStyle = {
+            backgroundColor: `${teamColor}26`, // 15% opacity
+            color: teamColor,
+            borderColor: `${teamColor}66` // 40% opacity
+          };
 
           const meta = p.metadata || {};
           return (
             <div key={p.id} className="rounded-xl border border-border bg-card p-5 hover:border-primary/40 transition-colors">
               <div className="flex items-start gap-4">
-                <div className={`h-16 w-16 rounded-full flex items-center justify-center text-xl font-bold shrink-0 ${colorClasses}`}>
-                  #{p.jersey_number}
+                <div className="h-16 w-16 rounded-full flex items-center justify-center text-xl font-bold shrink-0 border-2" style={dynamicStyle}>
+                  #{p.jersey_number || (p.name?.includes("Player T") ? p.name.split(" ")[1] : "?")}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold truncate">{p.name || "Unknown Player"}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">{p.position || "Field Player"}</div>
-                  <div className={`mt-1.5 inline-block text-[11px] font-medium px-2 py-0.5 rounded-full ${badgeClasses}`}>
+                  <div className="mt-1.5 inline-block text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: dynamicStyle.backgroundColor, color: dynamicStyle.color }}>
                     {teamName}
                   </div>
                 </div>
@@ -382,23 +407,24 @@ function PlayersTab({ players }: { players: any[] }) {
               <div className="absolute top-1/2 left-0 w-full h-px bg-white/10" />
               <div className="absolute top-0 left-1/2 w-px h-full bg-white/10" />
            </div>
-           {players.map((p, idx) => {
+           {players.filter(p => p.jersey_number).map((p, idx) => {
              const points = p.metadata?.heat_points || [];
-             const isIndia = p.team === "India" || p.team === "india";
-             const colorClass = isIndia ? "bg-[#00529B]" : "bg-[#FFCD00]";
-             const textColor = isIndia ? "text-white" : "text-black";
+             const teamColor = getTeamColor(p.team);
+             const isLight = teamColor === "#FFCD00"; // Yellow is light, use black text
              
              return points.map((pt: any, i: number) => (
                <div 
                  key={`${idx}-${i}`}
-                 className={`absolute h-3.5 w-3.5 rounded-full ${colorClass} ${textColor} flex items-center justify-center text-[7px] font-black border border-black/30 shadow-sm opacity-80 hover:opacity-100 transition-opacity`}
+                 className={`absolute h-4 w-4 rounded-full flex items-center justify-center text-[8px] font-black border border-black/30 shadow-md opacity-90 hover:opacity-100 transition-opacity`}
                  style={{ 
                    left: `${(pt.x / 1280) * 100}%`, 
                    top: `${(pt.y / 720) * 100}%`,
-                   transform: 'translate(-50%, -50%)'
+                   transform: 'translate(-50%, -50%)',
+                   backgroundColor: teamColor,
+                   color: isLight ? 'black' : 'white'
                  }}
                >
-                 {p.jersey_number || p.display_number?.replace('T', '')}
+                 {p.jersey_number}
                </div>
              ))
            })}
@@ -410,13 +436,22 @@ function PlayersTab({ players }: { players: any[] }) {
 }
 
 function TimelineTab({ events, onSeek }: { events: any[], onSeek?: (s: number) => void }) {
-  if (!events || events.length === 0) {
-    return <div className="text-center py-10 text-muted-foreground">No events recorded yet.</div>;
+  const jerseyEvents = events.filter(e => e.player_jersey !== null && e.player_jersey !== undefined);
+  
+  if (!jerseyEvents || jerseyEvents.length === 0) {
+    return (
+      <div className="text-center py-10 bg-card/50 rounded-xl border border-dashed border-border">
+        <Activity className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-20" />
+        <p className="text-muted-foreground">No confirmed jersey detections in this timeline yet.</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">Wait for OCR to identify players or check the "Players" tab.</p>
+      </div>
+    );
   }
+
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
       <div className="divide-y divide-border">
-        {events.map((e: any, i: number) => {
+        {jerseyEvents.map((e: any, i: number) => {
           const meta = e.metadata || {};
           return (
             <div 
@@ -430,7 +465,7 @@ function TimelineTab({ events, onSeek }: { events: any[], onSeek?: (s: number) =
               </span>
               <div className="flex-1 flex items-center gap-3 min-w-0">
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-elevated text-xs font-mono text-muted-foreground font-bold">
-                  #{e.player_jersey}
+                  #{e.player_jersey || (e.player_name?.includes("Player T") ? e.player_name.replace("Player ", "") : "?")}
                 </span>
                 <span className="text-sm font-medium truncate">{e.player_name || "Detected Player"}</span>
                 {meta.speed > 0 && (

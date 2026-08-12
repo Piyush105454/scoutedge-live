@@ -62,10 +62,13 @@ export const uploadToS3 = async (url: string, file: File): Promise<void> => {
     method: 'PUT',
     body: file,
     headers: {
-      'Content-Type': 'video/mp4' // Should match what backend generated
+      'Content-Type': file.type
     }
   })
-  if (!res.ok) throw new Error('S3 Upload failed')
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Storage upload failed (${res.status}): ${errorText}`);
+  }
 }
 
 // Upload video + match data
