@@ -82,9 +82,9 @@ function UploadPage() {
       } else {
         alert("Upload failed: " + res.error);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("An error occurred during upload. Please ensure your video is under 50MB.");
+      alert(`Upload Failed: ${err.message || "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -269,17 +269,22 @@ function UploadPage() {
         <div className="mt-5 grid md:grid-cols-2 gap-5">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium">Frame Sample Rate</label>
-              <span className="text-sm text-primary font-semibold tabular-nums">{fps} fps</span>
+              <label className="text-sm font-medium">Analysis Speed (Frame Rate)</label>
+              <span className={`text-sm font-bold tabular-nums ${fps < 1 ? "text-success" : fps > 2 ? "text-warning" : "text-primary"}`}>
+                {fps === 0.5 ? "FAST (0.5 fps)" : `${fps} fps`}
+              </span>
             </div>
             <input
-              type="range" min={1} max={10} step={1} value={fps}
+              type="range" min={0.5} max={10} step={0.5} value={fps}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFps(Number(e.target.value))}
               className="w-full accent-primary"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-              <span>1</span><span>5</span><span>10</span>
+              <span>0.5 (Fast)</span><span>5 (Detailed)</span><span>10 (Ultra)</span>
             </div>
+            <p className="text-[10px] text-muted-foreground mt-2 italic">
+              * Lower FPS = Faster analysis. Higher FPS = Better tracking but slower.
+            </p>
           </div>
           <div>
             <div className="text-sm font-medium mb-2">Output Format</div>

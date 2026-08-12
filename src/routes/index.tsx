@@ -46,7 +46,7 @@ function Dashboard() {
 
   const stats = [
     { label: "Total Videos", value: matches.length, icon: Video, trend: "+0 this week" },
-    { label: "Players Identified", value: players.length, icon: Users, trend: "+0 this week" },
+    { label: "Players Identified", value: players.filter((p: any) => p.jersey_number).length, icon: Users, trend: "+0 this week" },
     { label: "Matches Analyzed", value: matches.filter((m: Match) => m.status === 'completed').length, icon: Activity, trend: "+0 this week" },
     { label: "Frames Analyzed", value: matches.reduce((acc: number, m: Match) => acc + (m.frames_analyzed || 0), 0), icon: Clock, trend: "Live" },
   ];
@@ -109,7 +109,9 @@ function Dashboard() {
                     <td className="px-5 py-4 font-medium">{m.title}</td>
                     <td className="px-5 py-4 text-muted-foreground">{m.sport}</td>
                     <td className="px-5 py-4 text-muted-foreground">{new Date(m.created_at).toLocaleDateString()}</td>
-                    <td className="px-5 py-4 tabular-nums">{m.players_detected}</td>
+                    <td className="px-5 py-4 tabular-nums">
+                      {players.filter(p => p.match_id === m.id && p.jersey_number).length}
+                    </td>
                     <td className="px-5 py-4"><StatusBadge status={m.status} /></td>
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-1">
@@ -157,7 +159,7 @@ function Dashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {players.slice(0, 4).map((p: Player, i: number) => (
+              {players.filter(p => p.jersey_number).slice(0, 4).map((p: Player, i: number) => (
                 <tr key={p.id} className="hover:bg-elevated/30">
                   <td className="px-5 py-3 font-bold text-primary">#{i + 1}</td>
                   <td className="px-5 py-3 font-medium">{p.name || "Unknown"}</td>
@@ -165,7 +167,7 @@ function Dashboard() {
                   <td className="px-5 py-3 tabular-nums">{p.appearances}</td>
                   <td className="px-5 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/15 text-primary text-xs font-semibold">
-                      #{p.jersey_number}
+                      #{p.jersey_number || (p.name?.startsWith("Player T") ? p.name.replace("Player ", "") : i + 1)}
                     </span>
                   </td>
                 </tr>
