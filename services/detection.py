@@ -57,6 +57,8 @@ def detect_players(image_path):
                 "confidence": round(pred.get('confidence', 0), 2),
                 "class": pred.get('class', 'person')
             })
+            
+        print(f"DEBUG: Roboflow found {len(players)} players.", flush=True)
 
         return players
     except Exception as e:

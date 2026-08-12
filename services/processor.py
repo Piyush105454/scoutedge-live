@@ -45,11 +45,13 @@ class SimpleTracker:
         self.objects = new_objects
         return self.objects
 
-def process_video(video_path, on_progress=None):
+def process_video(video_path, on_progress=None, sample_rate=1.0, teams=("Home", "Away")):
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened(): return None
     fps = cap.get(cv2.CAP_PROP_FPS) or 30
-    frame_interval = int(fps * 3) 
+    frame_interval = max(1, int(fps / sample_rate)) # Use requested sample rate
+    
+    home_name, away_name = teams
     
     player_stats = {}
     tracker = SimpleTracker()
@@ -77,7 +79,7 @@ def process_video(video_path, on_progress=None):
             
             try:
                 players = detect_players(frame_path)
-                players = sorted(players, key=lambda x: x['confidence'], reverse=True)[:10]
+                players = sorted(players, key=lambda x: x['confidence'], reverse=True)[:25] # Increase to 25 to catch both teams
             except: players = []
 
             frame_result = {"timestamp": timestamp, "players": []}
@@ -85,13 +87,18 @@ def process_video(video_path, on_progress=None):
             
             for p in players:
                 info = read_jersey_number(frame_path, p)
+                raw_team = info.get('team', 'Unknown') if info else 'Unknown'
+                # Map generic Home/Away to real names
+                final_team = home_name if raw_team == "Home" else away_name if raw_team == "Away" else raw_team
+                
                 current_detections.append({
                     'x': p['x'], 'y': p['y'], 
-                    'team': info.get('team', 'Unknown') if info else 'Unknown',
+                    'team': final_team,
                     'jnum': info.get('jersey_number') if info else None,
                     'confidence': p['confidence'],
                     'bbox': p
                 })
+            
             
             tracked_objects = tracker.update(current_detections, timestamp)
             
@@ -99,12 +106,8 @@ def process_video(video_path, on_progress=None):
                 if obj['last_seen'] == timestamp:
                     jnum = obj['jnum']
                     
-                    # STRICT FILTER: Only show players with a Jersey Number
-                    # If no jersey number, we track them internally but don't add to results['players_found']
-                    if not jnum:
-                        continue
-                        
-                    final_id = str(jnum)
+                    # If no jersey number, we use the tracker ID (e.g. T1)
+                    final_id = str(jnum) if jnum else obj_id
                     player_data = {"confidence": 0.9, "jersey_number": jnum, "display_number": final_id, "team": obj['team'], "bbox": obj['pos'], "speed": 0, "x": obj['pos']['x'], "y": obj['pos']['y']}
                     
                     if final_id not in player_stats:
@@ -135,7 +138,10 @@ def process_video(video_path, on_progress=None):
             results['frames_analyzed'] += 1
             if os.path.exists(frame_path): os.remove(frame_path)
             if on_progress:
-                on_progress(results, {tid: {"total_distance": round(s['distance'], 2), "top_speed": s['top_speed'], "heat_points": s['heat_points'][-20:], "team": s['team'], "jersey_number": s['jersey_number']} for tid, s in player_stats.items()})
+                status = on_progress(results, {tid: {"total_distance": round(s['distance'], 2), "top_speed": s['top_speed'], "heat_points": s['heat_points'][-20:], "team": s['team'], "jersey_number": s['jersey_number']} for tid, s in player_stats.items()})
+                if status == False:
+                    print("Processing stopped: Match no longer exists.")
+                    break
         
         frame_count += 1
     

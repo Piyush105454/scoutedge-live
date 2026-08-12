@@ -14,6 +14,7 @@ def process_video_job():
     data = request.json
     match_id = data.get('match_id')
     video_url = data.get('video_url')
+    sample_rate = float(data.get('fps', 1.0))
     
     if not match_id or not video_url:
         return jsonify({"error": "Missing match_id or video_url"}), 400
@@ -28,9 +29,14 @@ def process_video_job():
         with open(video_path, 'wb') as f:
             shutil.copyfileobj(response.raw, f)
         
-        # 2. Update match status
+        # 2. Update match status & Fetch Team Names
         conn = get_db_connection()
         cur = conn.cursor()
+        cur.execute("SELECT home_team, away_team FROM matches WHERE id = %s", (match_id,))
+        match_info = cur.fetchone()
+        home_team_name = match_info['home_team'] or "Home"
+        away_team_name = match_info['away_team'] or "Away"
+        
         cur.execute("UPDATE matches SET status = %s WHERE id = %s", ('processing', match_id))
         conn.commit()
 
@@ -40,8 +46,17 @@ def process_video_job():
                 inner_conn = get_db_connection()
                 inner_cur = inner_conn.cursor()
                 
-                # Count current events
-                current_events = sum(len([p for p in f['players'] if p['jersey_number'] or p.get('display_number')]) for f in current_results['timeline'])
+                # Safety Check: Does the match still exist?
+                inner_cur.execute("SELECT id FROM matches WHERE id = %s", (match_id,))
+                if not inner_cur.fetchone():
+                    print(f"Match {match_id} deleted. Stopping background job.")
+                    # We can't easily kill the thread from here, but we can prevent further DB errors
+                    # and signal the main loop if needed.
+                    return False 
+
+                # Count current events (all tracked players)
+                current_events = sum(len(f['players']) for f in current_results['timeline'])
+                print(f"DEBUG: Progress Update - Players Found: {len(current_results['players_found'])}, Events Tagged: {current_events}", flush=True)
                 
                 # Update match
                 inner_cur.execute(
@@ -85,8 +100,8 @@ def process_video_job():
                 print(f"Progress update error: {e}")
 
         # 3. Process video
-        print(f"Processing video for match {match_id}...")
-        results = process_video(video_path, on_progress=update_db_progress)
+        print(f"Processing video for match {match_id} (Teams: {home_team_name} vs {away_team_name})...")
+        results = process_video(video_path, on_progress=update_db_progress, sample_rate=sample_rate, teams=(home_team_name, away_team_name))
         
         if not results:
             raise Exception("Processing failed")
@@ -95,11 +110,27 @@ def process_video_job():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Only count events where a real jersey number was detected
-        total_events = sum(len([p for p in f['players'] if p['jersey_number']]) for f in results['timeline'])
+        # Calculate actual processing duration
+        processing_duration = time.time() - start_time
+        
+        # Generate a few key clips for the UI
+        clips = []
+        for frame in results['timeline'][:6]: # Top 6 moments
+            timestamp = frame['timestamp']
+            p = frame['players'][0] if frame['players'] else None
+            player_id = p['display_number'] if p else "Unknown"
+            
+            clips.append({
+                "title": f"Player {player_id} Detected",
+                "timestamp": timestamp,
+                "thumbnail": f"/static/clips/thumb_{match_id}_{timestamp}.jpg"
+            })
 
+        # Final metadata preparation
         final_meta = results.get('player_metrics', {})
-        final_meta['clips'] = results.get('clips', [])
+        final_meta['processing_time'] = f"{processing_duration:.1f}s"
+        final_meta['clips'] = clips
+        final_meta['total_frames'] = results.get('total_frames', 0)
 
         cur.execute(
             "UPDATE matches SET status = %s, frames_analyzed = %s, players_detected = %s, events_tagged = %s, metadata = %s WHERE id = %s",
@@ -110,17 +141,16 @@ def process_video_job():
         for frame in results['timeline']:
             timestamp = frame['timestamp']
             for player in frame['players']:
-                if player['jersey_number']: # ONLY real jersey numbers
-                    event_meta = {
-                        "speed": player.get('speed', 0), 
-                        "x": player.get('x', 0), 
-                        "y": player.get('y', 0),
-                        "team": player.get('team', 'Unknown')
-                    }
-                    cur.execute(
-                        "INSERT INTO events (match_id, event_type, player_jersey, confidence, timestamp, metadata) VALUES (%s, %s, %s, %s, %s, %s)",
-                        (match_id, 'player_detection', player['jersey_number'], player['confidence'], str(timestamp), json.dumps(event_meta))
-                    )
+                # Save every detection as an event for the timeline
+                event_meta = {
+                    "bbox": player.get('bbox'),
+                    "team": player.get('team'),
+                    "speed": player.get('speed')
+                }
+                cur.execute(
+                    "INSERT INTO events (match_id, event_type, player_jersey, player_name, confidence, timestamp, metadata) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    (match_id, 'player_detection', player.get('jersey_number'), player.get('display_number'), player['confidence'], str(timestamp), json.dumps(event_meta))
+                )
         
         conn.commit()
         cur.close()

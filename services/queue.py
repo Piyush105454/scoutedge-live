@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def queue_analysis_job(match_id, video_url):
+def queue_analysis_job(match_id, video_url, fps=1.0):
     """
     Queues a video analysis job via Upstash QStash, or runs locally if configured.
     """
@@ -20,10 +20,10 @@ def queue_analysis_job(match_id, video_url):
             # This mimics the logic in routes/jobs.py but simplified for local
             try:
                 # We can call the endpoint logic directly or just the processor
-                # For now, let's just trigger a local POST request to our own API
-                requests.post(f"http://localhost:5000/api/jobs/process", json={
+                 requests.post(f"http://localhost:5000/api/jobs/process", json={
                     "match_id": match_id,
-                    "video_url": video_url
+                    "video_url": video_url,
+                    "fps": fps
                 })
             except Exception as e:
                 print(f"Local worker error: {e}")
@@ -51,7 +51,8 @@ def queue_analysis_job(match_id, video_url):
     
     payload = {
         "match_id": match_id,
-        "video_url": video_url
+        "video_url": video_url,
+        "fps": fps
     }
     
     try:

@@ -3,38 +3,42 @@ import numpy as np
 
 def detect_team(crop):
     """
-    Detects the team based on the dominant color of the jersey crop.
-    Returns 'Home' or 'Away' based on color heuristics.
-    For this demo, we'll use a simple Blue vs Not-Blue logic (India vs Australia).
+    Detects the team based on dominant color.
+    Returns 'Home', 'Away', or 'Neutral'.
     """
     if crop is None or crop.size == 0:
         return "Unknown"
         
-    # Resize to speed up
     small_crop = cv2.resize(crop, (30, 30))
-    
-    # Calculate average color (BGR)
     avg_color = np.mean(small_crop, axis=(0, 1))
     b, g, r = avg_color
     
-    # India (Blue) vs Australia (Yellow/Green)
-    # Blue: High B, lower R and G
-    # Yellow: High R and G, lower B
+    # Simple color logic for Home/Away
+    # Home is usually Blue/Green (High B or G)
+    # Away is usually Yellow/Red/White (High R)
     
-    if b > r + 20 and b > g + 20:
-        return "India" # Blue team
-    elif r > b + 20 and g > b + 20:
-        return "Australia" # Yellow team
-    else:
-        # Fallback to Home/Away based on general brightness or custom rules
-        if r + g + b > 400: # Bright (often Australia yellow)
-            return "Australia"
-        else:
-            return "India"
+    if b > r + 15 and b > g + 5:
+        return "Home" # Blue-ish
+    elif r > b + 15 and g > b + 15:
+        return "Away" # Yellow-ish
+    elif g > b + 15 and g > r + 10:
+        return "Home" # Green-ish
+    elif r > b + 20 and g < r - 20:
+        return "Away" # Red-ish
+    
+    if r + g + b > 600: return "Away" # White/Bright
+    return "Neutral"
 
 def get_team_color_hex(team_name):
-    if team_name == "India":
+    team_name = team_name.lower() if team_name else ""
+    if "india" in team_name or "blue" in team_name:
         return "#00529B" # Blue
-    elif team_name == "Australia":
+    elif "australia" in team_name or "yellow" in team_name or "gold" in team_name:
         return "#FFCD00" # Yellow
-    return "#888888"
+    elif "away" in team_name or "red" in team_name:
+        return "#E21D48" # Red
+    elif "home" in team_name or "green" in team_name:
+        return "#16A34A" # Green
+    elif "simulation" in team_name:
+        return "#7C3AED" # Purple
+    return "#94A3B8" # Gray/Slate

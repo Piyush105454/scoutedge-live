@@ -103,6 +103,7 @@ def read_jersey_number(image_path, player_box):
                 if number_str:
                     number = int(number_str)
                     if 1 <= number <= 99:
+                        print(f"DEBUG: OCR result: {number} on team {team}", flush=True)
                         return {
                             "jersey_number": number,
                             "raw_text": text,

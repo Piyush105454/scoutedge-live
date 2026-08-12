@@ -13,7 +13,8 @@ def get_storage_client():
         endpoint_url=os.getenv('SUPABASE_ENDPOINT'),
         aws_access_key_id=os.getenv('SUPABASE_ACCESS_KEY'),
         aws_secret_access_key=os.getenv('SUPABASE_SECRET_KEY'),
-        region_name=os.getenv('SUPABASE_REGION', 'ap-northeast-1')
+        region_name=os.getenv('SUPABASE_REGION', 'ap-northeast-1'),
+        config=boto3.session.Config(signature_version='s3v4')
     )
 
 def sanitize_filename(filename):
@@ -67,11 +68,12 @@ def generate_presigned_url(filename):
         'put_object',
         Params={
             'Bucket': bucket,
-            'Key': filename,
-            'ContentType': 'video/mp4' # Or detect from extension
+            'Key': filename
         },
         ExpiresIn=3600 # 1 hour
     )
+    
+    print(f"DEBUG: Generated pre-signed URL: {url}", flush=True)
     
     # Also return the final public URL
     encoded_filename = urllib.parse.quote(filename)

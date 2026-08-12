@@ -40,8 +40,8 @@ def upload_video():
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO matches (title, sport, match_date, venue, status, video_url)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO matches (title, sport, match_date, venue, status, video_url, home_team, away_team)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
         """,
         (
@@ -50,7 +50,9 @@ def upload_video():
             match_data.get('match_date') or None, 
             match_data.get('venue') or None,
             'queued',
-            video_url
+            video_url,
+            match_data.get('home_team'),
+            match_data.get('away_team')
         )
     )
     match_id = cur.fetchone()['id']
@@ -77,7 +79,9 @@ def upload_video():
     
     # 4. Trigger Analysis Job
     from services.queue import queue_analysis_job
-    queue_analysis_job(str(match_id), video_url)
+    settings = json.loads(match_data.get('settings', '{}'))
+    fps_val = settings.get('fps', 1.0)
+    queue_analysis_job(str(match_id), video_url, fps=fps_val)
     
     return jsonify({
         "success": True,

@@ -18,11 +18,28 @@ dist-ssr
 .env
 .env.*
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+ENV/
+env/
+.pytest_cache/
+test_report.txt
+
+# Media & Temporary Files
+*.mp4
+temp_*.jpg
+scratch/
+static/clips/*
+!.gitkeep
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
 
-# Editor directories and files
+# Editor & Workspace
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -32,3 +49,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+*.code-workspace
+design.md
